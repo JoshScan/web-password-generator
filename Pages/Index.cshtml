@@ -1,0 +1,261 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="form-group">
+    <label>Select Characters to use</label>
+</div>
+<div class="form-group">
+    
+    <!--numbers-->
+    <label>Use Numbers</label>
+    <div class="input-group mb-1">
+        <div class="input-group-text">
+            <input id="allow_numbers" class="me-2" type="checkbox" aria-label="Checkbox for following text input">
+            <span>e.g. 012345...</span>
+        </div>
+    </div>
+    <!--lowercase-->
+    <label>Use Lowercase Letters</label>
+    <div class="input-group mb-1">
+        <div class="input-group-text">
+            <input id="allow_lowercase" class="me-2" type="checkbox" aria-label="Checkbox for following text input">
+            <span>e.g. abcdef...</span>
+        </div>
+    </div>
+    <!--uppercase-->
+    <label>Use Uppercase Letters</label>
+    <div class="input-group mb-1">
+        <div class="input-group-text">
+            <input id="allow_uppercase" class="me-2" type="checkbox" aria-label="Checkbox for following text input">
+            <span>e.g. ABCDEF...</span>
+        </div>
+    </div>
+    <!--common Symbols-->
+    <label>Use Common Symbols</label>
+    <div class="input-group mb-1">
+        <div class="input-group-text">
+            <input id="allow_symbols" class="me-2" type="checkbox" aria-label="Checkbox for following text input">
+            <span>~&#64;#$%^&*-_+=/\|</span>
+        </div>
+    </div>
+    <!--punctuation-->
+    <label>Use Punctuation marks</label>
+    <div class="input-group mb-1">
+        <div class="input-group-text">
+            <input id="allow_punctuation" class="me-2" type="checkbox" aria-label="Checkbox for following text input">
+            <span>!,.:;?</span>
+        </div>
+    </div>
+    <!--quotes-->
+    <label>Use Quote Marks</label>
+    <div class="input-group mb-1">
+        <div class="input-group-text">
+            <input id="allow_quotes" class="me-2" type="checkbox" aria-label="Checkbox for following text input">
+            <span>`"'</span>
+        </div>
+    </div>
+    <!--brackets-->
+    <label>Use Brackets</label>
+    <div class="input-group mb-1">
+        <div class="input-group-text">
+            <input id="allow_brackets" class="me-2" type="checkbox" aria-label="Checkbox for following text input">
+            <span>[ ] { } &gt; &lt; ( )</span>
+        </div>
+    </div>
+</div>
+
+
+<div class="form-group">
+    <label>password length</label>
+    <input class="form-control" id="gen_length" type="number" value="10"/>
+</div>
+<div class="form-group">
+    <label>password count</label>
+    <input class="form-control" id="gen_count" type="number" value="10" />
+</div>
+<div class="form-group">
+    <label></label>
+    <input class="form-control btn btn-primary"  id="generate" type="button" value="Generate" />
+</div>
+<div class="form-group">
+    <label>Generated Password</label>
+    <textarea class="form-control" id="password_output" rows="12" ></textarea>
+</div>
+
+<script type="text/javascript">
+    //extension method
+    Array.prototype.jcon = function (s) {
+        return this.indexOf(s) > -1;
+    }
+
+    let possibleChars = [];
+
+    var isInitialized = false;
+    var eventsBound = false;
+    function bindEvents() {
+        if (eventsBound) return;
+        //document.addEventListener("DOMContentLoaded", (e) => { init(e); });
+        document.getElementById("generate").addEventListener("click", (e) => {
+            init();
+            let passwordLength = $("#gen_lenth").val();
+            let passwordCount = $("#gen_count").val();
+            let passwords = generatePasswords(passwordLength);
+            document.getElementById("password_output").innerHTML = passwords;
+        });
+        //bind all check boxes
+        let checkBoxes = document.querySelectorAll(".me-2");
+        checkBoxes.forEach(cbox => {
+            if (cbox.type !== "checkbox") return;
+            cbox.addEventListener("change", (event) => {
+                isInitialized = false;
+            });
+        });
+
+        eventsBound = true;
+    }
+
+    document.addEventListener("DOMContentLoaded", (e) => { bindEvents(); });
+
+    //init
+    function init() { 
+        if (isInitialized) return;
+        //build charlist
+        possibleChars = [];
+        /*
+        number
+        upper
+        lower
+        symbol
+        punctuation
+        quotes
+        brackets
+        */
+        if (useSet("n")) addSet("01234567890");
+        if (useSet("u")) addSet("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        if (useSet("l")) addSet("abcdefghijklmnopqrstuvwxyz");
+        if (useSet("cs")) addSet('~&@@#$%^&*-_+=/\\|');
+        if (useSet("p")) addSet("!,.:;?");
+        if (useSet("q")) addSet("`\"'");
+        if (useSet("b")) addSet("()<>{}[]");
+        //radomize charList
+        for (let i = 0; i < 5; i++){
+            possibleChars = randomizeArray(possibleChars);
+        }
+        //done
+        console.log("---Initialized---");
+    }
+
+    function addSet(set) {
+        possibleChars = possibleChars.concat(set.trim().split(""));
+    }
+
+    function useSet(setAbbr){
+        let part = getSetPart(setAbbr);
+        let id = `allow_${part}`;
+        return isChecked(id);
+    }
+
+    function getSetPart(setAbbr) {
+        switch (true) {
+            case ["n", "N", "#"].jcon(setAbbr):
+                return "numbers";
+            case ["u", "U"].jcon(setAbbr):
+                return "uppercase";
+            case ["l", "L"].jcon(setAbbr):
+                return "lowercase";
+            case ["s", "S", "cs", "CS"].jcon(setAbbr):
+                return "symbols";
+            case ["p", "P"].jcon(setAbbr):
+                return "punctuation";
+            case ["q", "Q"].jcon(setAbbr):
+                return "quotes";
+            case ["b", "B"].jcon(setAbbr):
+                return "brackets";
+            default:
+                return "";
+        }
+    }
+
+    function isChecked(id) {
+        try {
+            console.log(`isChecked id: ${id}`);
+            let myElement = document.getElementById(id);
+            if (myElement != null) {
+                return myElement.checked;
+            }
+        } catch (eek) {
+            console.log(eek);
+        }
+        return false;
+    }
+
+    function randomizeArray(array) {
+        let currentIndex = array.length, temporaryValue, randomIndex;
+        while (0 !== currentIndex) {
+            //pick a random element
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            // And Swap it with random element
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+        return array;
+    }
+
+    function getNextChar() { 
+        console.log(`getNextChar: possibleChars: ${possibleChars.length}`);
+        let i = Math.floor(Math.random() * possibleChars.length);
+        console.log(`getNextChar: i: ${i}`);
+        let nc = possibleChars[i];
+        console.log(`getNextChar: nextChar ${nc}`);
+        return nc;
+    }
+
+    function getCharType(c) {
+        console.log(`c: ${c}`);
+        let cc = c.charCodeAt(0);
+        
+        switch (true) {
+            case cc >= 48 && cc <= 57:
+                return "number";
+            case cc >= 65 && cc <= 90:
+                return "ucase";
+            case cc >= 97 && cc <= 122:
+                return "lcase";
+            default:
+                return "symbol";
+        }
+    }
+
+    function generatePasswords(passwordLength, toGenerate = 10) {
+        let passwordList = "";
+        for (let i = 0; i < toGenerate; i++) {
+            let currentPassword = "";
+            var lastCharType = "none";
+            for (let j = 0; j < passwordLength; j++) {
+                let nextChar = getNextChar();
+                let ct = getCharType(nextChar);
+                console.log(`i: ${i}, j: ${j}, currentPassword: ${currentPassword}, nextChar: ${nextChar}, lastCharType: ${lastCharType}, ct: ${ct}`);
+                if (lastCharType != "none" &&  (lastCharType == ct && lastCharType != "lcase")) {
+                    let sameType = true;
+                    
+                    while (sameType) {
+                        nextChar = getNextChar();
+                        ct = getCharType(nextChar);
+                        sameType = lastCharType == ct;
+                        console.log(`i: ${i}, j: ${j}, currentPassword: ${currentPassword}, nextChar: ${nextChar}, sameType: ${sameType}`);
+                    }
+                }
+                currentPassword += nextChar;
+                lastCharType = ct;
+            }
+            passwordList += `${currentPassword}\r\n`;
+        }
+        return passwordList;
+    }
+
+</script>
